@@ -11,7 +11,7 @@ class TdJson {
     tdSend!(clientId, jsonEncode(data).toNativeUtf8());
   }
 
-  static void init(String tdlibPath) {
+  static void init({String tdlibPath = 'tdjson.dll'}) {
     dylib = DynamicLibrary.open(tdlibPath);
     tdCreateClientId = dylib!.lookupFunction<Int Function(), int Function()>(
       'td_create_client_id',

@@ -12,7 +12,7 @@ class Client {
   Stream<Map<String, dynamic>> get updates => _updates.stream;
   Client({required this.clientId, this.timeout = 10.0});
   bool running = false;
-  void start() {
+  void start({String tdlibPath = 'tdjson.dll'}) {
     if (running) {
       return;
     }
@@ -20,7 +20,7 @@ class Client {
     ReceivePort receivePort = ReceivePort();
     Isolate.spawn((SendPort sendPort) {
       while (running) {
-        TdJson.init('tdjson.dll');
+        TdJson.init(tdlibPath);
         final msg = TdJson.receive(timeout);
         sendPort.send(msg);
       }

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:tdjsonapi/tdjsonapi.dart';
 
 void main() async {
-  TdJson.init('tdjson.dll');
+  TdJson.init();
   final clientId = TdJson.tdCreateClientId!();
   final client = Client(clientId: clientId);
   TdJson.send(clientId, {
