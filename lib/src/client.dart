@@ -2,9 +2,21 @@ import 'tdjsonapi_base.dart';
 import 'dart:async';
 import 'dart:isolate';
 
+class IsolateEntryArgument {
+  SendPort sendPort;
+  String tdlibPath;
+  double timeout;
+  IsolateEntryArgument({
+    required this.sendPort,
+    required this.tdlibPath,
+    required this.timeout,
+  });
+}
+
 class Client {
   int sendId = 1;
   int clientId = 0;
+  ReceivePort receivePort = ReceivePort();
   double timeout = 0;
   final Map<int, Completer<Map<String, dynamic>>> _pendding = {};
   final StreamController<Map<String, dynamic>> _updates =
@@ -12,19 +24,23 @@ class Client {
   Stream<Map<String, dynamic>> get updates => _updates.stream;
   Client({required this.clientId, this.timeout = 10.0});
   bool running = false;
-  void start({String tdlibPath = 'tdjson.dll'}) {
-    if (running) {
-      return;
+  static void isolateEntry(IsolateEntryArgument isolateEntryArgument) {
+    TdJson.init(tdlibPath: isolateEntryArgument.tdlibPath);
+    while (true) {
+      final msg = TdJson.receive(isolateEntryArgument.timeout);
+      isolateEntryArgument.sendPort.send(msg);
     }
-    running = true;
-    ReceivePort receivePort = ReceivePort();
-    Isolate.spawn((SendPort sendPort) {
-      while (running) {
-        TdJson.init(tdlibPath);
-        final msg = TdJson.receive(timeout);
-        sendPort.send(msg);
-      }
-    }, receivePort.sendPort);
+  }
+
+  void start({String tdlibPath = 'tdjson.dll'}) {
+    Isolate.spawn(
+      isolateEntry,
+      IsolateEntryArgument(
+        sendPort: receivePort.sendPort,
+        tdlibPath: tdlibPath,
+        timeout: timeout,
+      ),
+    );
     receivePort.listen((msg) {
       final extra = msg['@extra'];
       if (extra is int && _pendding.containsKey(extra)) {
