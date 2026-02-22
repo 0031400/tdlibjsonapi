@@ -1,17 +1,7 @@
 import 'tdjsonapi_base.dart';
 import 'dart:async';
 import 'dart:isolate';
-
-class IsolateEntryArgument {
-  SendPort sendPort;
-  String tdlibPath;
-  double timeout;
-  IsolateEntryArgument({
-    required this.sendPort,
-    required this.tdlibPath,
-    required this.timeout,
-  });
-}
+import 'dart:convert';
 
 class Client {
   int sendId = 1;
@@ -22,30 +12,12 @@ class Client {
   final StreamController<Map<String, dynamic>> _updates =
       StreamController.broadcast();
   Stream<Map<String, dynamic>> get updates => _updates.stream;
-  Client({required this.clientId, this.timeout = 10.0});
-  bool running = false;
-  static void isolateEntry(IsolateEntryArgument isolateEntryArgument) {
-    TdJson.init(tdlibPath: isolateEntryArgument.tdlibPath);
-    while (true) {
-      final msg = TdJson.receive(isolateEntryArgument.timeout);
-      isolateEntryArgument.sendPort.send(msg);
-    }
-  }
-
-  void start({String tdlibPath = 'tdjson.dll'}) {
-    Isolate.spawn(
-      isolateEntry,
-      IsolateEntryArgument(
-        sendPort: receivePort.sendPort,
-        tdlibPath: tdlibPath,
-        timeout: timeout,
-      ),
-    );
+  Client({required this.clientId, this.timeout = 10.0}) {
     receivePort.listen((msg) {
-      final extra = msg['@extra'];
-      if (extra is int && _pendding.containsKey(extra)) {
-        _pendding[extra]!.complete(msg);
-        _pendding.remove(extra);
+      final sendId = msg['@extra']?['send_id'];
+      if (sendId is int && _pendding.containsKey(sendId)) {
+        _pendding[sendId]!.complete(msg);
+        _pendding.remove(sendId);
       } else {
         _updates.add(msg);
       }
@@ -54,7 +26,7 @@ class Client {
 
   Future<Map<String, dynamic>> send(Map<String, dynamic> data) {
     sendId++;
-    data['@extra'] = sendId;
+    data['@extra'] = {'send_id': sendId};
     final c = Completer<Map<String, dynamic>>();
     _pendding[sendId] = c;
     TdJson.send(clientId, data);

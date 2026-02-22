@@ -5,4 +5,6 @@ library;
 
 export 'src/tdjsonapi_base.dart';
 export 'src/client.dart';
+export 'src/tdlib_service.dart';
+
 // TODO: Export any libraries intended for clients of this package.
