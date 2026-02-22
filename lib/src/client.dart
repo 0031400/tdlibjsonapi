@@ -12,7 +12,7 @@ class Client {
   final StreamController<Map<String, dynamic>> _updates =
       StreamController.broadcast();
   Stream<Map<String, dynamic>> get updates => _updates.stream;
-  Client({required this.clientId, this.timeout = 10.0}) {
+  Client({required this.clientId, this.timeout = 10.0, int logLevel = 1}) {
     receivePort.listen((msg) {
       final sendId = msg['@extra']?['send_id'];
       if (sendId is int && _pendding.containsKey(sendId)) {
@@ -22,6 +22,7 @@ class Client {
         _updates.add(msg);
       }
     });
+    send({'@type': 'setLogVerbosityLevel', 'new_verbosity_level': logLevel});
   }
 
   Future<Map<String, dynamic>> send(Map<String, dynamic> data) {
